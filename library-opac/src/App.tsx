@@ -30,6 +30,7 @@ import ManageBookCopies from "./pages/ManageBookCopies";
 import ManageBorrowings from "./pages/ManageBorrowings";
 import ManageReservations from "./pages/ManageReservations";
 import BorrowingReports from "./pages/BorrowingReports";
+import Profile from "./pages/Profile";
 import "./App.css";
 
 /* =========================================================
@@ -470,6 +471,7 @@ function App() {
           path="/"
           element={<Home />}
         />
+        <Route path="/student/profile" element={<Profile />} />
 
         {/* BOOK DETAILS */}
 

@@ -14,6 +14,7 @@ import bookCopyRoutes from "./routes/bookcopy.routes";
 import borrowingRoutes from "./routes/borrowing.routes";
 import reservationRoutes from "./routes/reservation.routes";
 import DashboardRoutes from "./routes/dashboard.routes";
+import UesrRoutes from "./routes/user.routes";
 const app = express();
 
 app.use(cors());
@@ -25,6 +26,7 @@ app.use(
 
 
 app.use("/api/auth", authRoutes);
+app.use("/api/user", UesrRoutes);
 app.use("/api/authors", authorRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/books", bookRoutes);

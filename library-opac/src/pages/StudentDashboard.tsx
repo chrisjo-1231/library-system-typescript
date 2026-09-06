@@ -52,6 +52,16 @@ interface Reservation {
   };
 }
 
+interface StoredUser {
+  id?: number;
+  name?: string;
+  email?: string;
+  role?: string;
+  profileImage?: string | null;
+}
+
+const API_URL = "http://localhost:5000";
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
 
@@ -70,13 +80,46 @@ export default function StudentDashboard() {
   const [error, setError] =
     useState("");
 
-  const user = JSON.parse(
-    localStorage.getItem("user") || "{}"
-  );
+  /*
+  |--------------------------------------------------------------------------
+  | GET USER FROM LOCAL STORAGE
+  |--------------------------------------------------------------------------
+  */
+
+  const getStoredUser = (): StoredUser => {
+    const storedUser =
+      localStorage.getItem("user");
+
+    if (!storedUser) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(storedUser);
+    } catch (error) {
+      console.error(
+        "USER PARSE ERROR:",
+        error
+      );
+
+      return {};
+    }
+  };
+
+  const user = getStoredUser();
+
+  /*
+  |--------------------------------------------------------------------------
+  | LOAD DASHBOARD
+  |--------------------------------------------------------------------------
+  */
 
   useEffect(() => {
     const loadDashboard = async () => {
       try {
+        setLoading(true);
+        setError("");
+
         const [
           borrowingsResponse,
           reservationsResponse,
@@ -92,14 +135,15 @@ export default function StudentDashboard() {
         setReservations(
           reservationsResponse.data
         );
-      } catch (error) {
+      } catch (error: any) {
         console.error(
-          "Failed to load dashboard:",
+          "FAILED TO LOAD DASHBOARD:",
           error
         );
 
         setError(
-          "Failed to load dashboard data."
+          error?.response?.data?.message ||
+            "Failed to load dashboard data."
         );
       } finally {
         setLoading(false);
@@ -109,9 +153,11 @@ export default function StudentDashboard() {
     loadDashboard();
   }, []);
 
-  /* =========================
-     LOGOUT
-  ========================= */
+  /*
+  |--------------------------------------------------------------------------
+  | LOGOUT
+  |--------------------------------------------------------------------------
+  */
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -120,9 +166,11 @@ export default function StudentDashboard() {
     navigate("/login");
   };
 
-  /* =========================
-     CANCEL RESERVATION
-  ========================= */
+  /*
+  |--------------------------------------------------------------------------
+  | CANCEL RESERVATION
+  |--------------------------------------------------------------------------
+  */
 
   const handleCancelReservation = async (
     reservationId: number
@@ -155,12 +203,12 @@ export default function StudentDashboard() {
       );
     } catch (error: any) {
       console.error(
-        "Cancel reservation error:",
+        "CANCEL RESERVATION ERROR:",
         error
       );
 
       setError(
-        error.response?.data?.message ||
+        error?.response?.data?.message ||
           "Failed to cancel reservation."
       );
     } finally {
@@ -168,9 +216,11 @@ export default function StudentDashboard() {
     }
   };
 
-  /* =========================
-     ACTIVE DATA
-  ========================= */
+  /*
+  |--------------------------------------------------------------------------
+  | ACTIVE DATA
+  |--------------------------------------------------------------------------
+  */
 
   const activeBorrowings =
     borrowings.filter(
@@ -184,15 +234,16 @@ export default function StudentDashboard() {
         reservation.status === "PENDING"
     );
 
-  /* =========================
-     DAYS REMAINING
-  ========================= */
+  /*
+  |--------------------------------------------------------------------------
+  | DAYS REMAINING
+  |--------------------------------------------------------------------------
+  */
 
   const getDaysRemaining = (
     dueDate: string
   ) => {
     const today = new Date();
-
     const due = new Date(dueDate);
 
     const difference =
@@ -205,28 +256,57 @@ export default function StudentDashboard() {
     );
   };
 
-  /* =========================
-     LOADING
-  ========================= */
+  /*
+  |--------------------------------------------------------------------------
+  | PROFILE IMAGE
+  |--------------------------------------------------------------------------
+  */
+
+  const profileImageUrl =
+    user.profileImage
+      ? `${API_URL}${user.profileImage}`
+      : null;
+
+  /*
+  |--------------------------------------------------------------------------
+  | LOADING
+  |--------------------------------------------------------------------------
+  */
 
   if (loading) {
     return (
       <div className="loading">
-        Loading dashboard...
+        <BookOpen size={24} />
+
+        <span
+          style={{
+            marginLeft: "10px",
+          }}
+        >
+          Loading dashboard...
+        </span>
       </div>
     );
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | UI
+  |--------------------------------------------------------------------------
+  */
+
   return (
     <div className="dashboard-page">
 
-      {/* =========================
+      {/* =====================================================
           NAVBAR
-      ========================= */}
+      ===================================================== */}
 
       <nav className="dashboard-navbar">
 
         <div className="dashboard-navbar-inner">
+
+          {/* LOGO */}
 
           <Link
             to="/"
@@ -239,28 +319,48 @@ export default function StudentDashboard() {
             Library OPAC
           </Link>
 
+          {/* NAV RIGHT */}
+
           <div className="dashboard-nav-right">
 
             <Link to="/">
               Browse Books
             </Link>
 
-            <div className="user-menu">
+            {/* PROFILE */}
 
-              <User size={18} />
+            <Link
+              to="/student/profile"
+              className="student-profile-link"
+            >
+              {profileImageUrl ? (
+                <img
+                  src={profileImageUrl}
+                  alt="Profile"
+                  className="student-navbar-avatar"
+                  onError={(event) => {
+                    event.currentTarget.style.display =
+                      "none";
+                  }}
+                />
+              ) : (
+                <div className="student-navbar-avatar-placeholder">
+                  <User size={17} />
+                </div>
+              )}
 
               <span>
                 {user.name || "Student"}
               </span>
+            </Link>
 
-            </div>
+            {/* LOGOUT */}
 
             <button
               className="logout-button"
               onClick={handleLogout}
             >
               <LogOut size={17} />
-
               Logout
             </button>
 
@@ -270,13 +370,15 @@ export default function StudentDashboard() {
 
       </nav>
 
-      {/* =========================
+      {/* =====================================================
           MAIN
-      ========================= */}
+      ===================================================== */}
 
       <main className="dashboard-main">
 
-        {/* HEADER */}
+        {/* =====================================================
+            HEADER
+        ===================================================== */}
 
         <div className="dashboard-header">
 
@@ -298,18 +400,31 @@ export default function StudentDashboard() {
 
           </div>
 
-          <Link
-            to="/"
-            className="browse-button"
-          >
-            <BookOpen size={17} />
+          <div className="dashboard-header-actions">
 
-            Browse Books
-          </Link>
+            <Link
+              to="/student/profile"
+              className="profile-dashboard-button"
+            >
+              <User size={17} />
+              My Profile
+            </Link>
+
+            <Link
+              to="/"
+              className="browse-button"
+            >
+              <BookOpen size={17} />
+              Browse Books
+            </Link>
+
+          </div>
 
         </div>
 
-        {/* ERROR */}
+        {/* =====================================================
+            ERROR
+        ===================================================== */}
 
         {error && (
           <div className="reservation-error">
@@ -317,9 +432,9 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* =========================
+        {/* =====================================================
             STATISTICS
-        ========================= */}
+        ===================================================== */}
 
         <div className="dashboard-stats">
 
@@ -391,9 +506,9 @@ export default function StudentDashboard() {
 
         </div>
 
-        {/* =========================
+        {/* =====================================================
             BORROWED BOOKS
-        ========================= */}
+        ===================================================== */}
 
         <section className="dashboard-section">
 
@@ -414,8 +529,7 @@ export default function StudentDashboard() {
 
           </div>
 
-          {activeBorrowings.length ===
-          0 ? (
+          {activeBorrowings.length === 0 ? (
 
             <div className="dashboard-empty">
 
@@ -431,11 +545,8 @@ export default function StudentDashboard() {
               </p>
 
               <Link to="/">
-
                 Browse Books
-
                 <ArrowRight size={15} />
-
               </Link>
 
             </div>
@@ -464,9 +575,7 @@ export default function StudentDashboard() {
                       {/* BOOK ICON */}
 
                       <div className="borrowed-icon">
-
                         <BookOpen size={25} />
-
                       </div>
 
                       {/* BOOK INFO */}
@@ -525,16 +634,13 @@ export default function StudentDashboard() {
                         </strong>
 
                         <span>
-
                           {overdue
                             ? "Overdue"
                             : `${daysRemaining} ${
-                                daysRemaining ===
-                                1
+                                daysRemaining === 1
                                   ? "day"
                                   : "days"
                               } remaining`}
-
                         </span>
 
                       </div>
@@ -550,9 +656,9 @@ export default function StudentDashboard() {
 
         </section>
 
-        {/* =========================
+        {/* =====================================================
             RESERVATIONS
-        ========================= */}
+        ===================================================== */}
 
         <section className="dashboard-section">
 
@@ -572,8 +678,7 @@ export default function StudentDashboard() {
 
           </div>
 
-          {pendingReservations.length ===
-          0 ? (
+          {pendingReservations.length === 0 ? (
 
             <div className="dashboard-empty">
 
@@ -605,9 +710,7 @@ export default function StudentDashboard() {
                     {/* ICON */}
 
                     <div className="reservation-icon">
-
                       <Bookmark size={22} />
-
                     </div>
 
                     {/* BOOK INFO */}
@@ -683,9 +786,9 @@ export default function StudentDashboard() {
 
       </main>
 
-      {/* =========================
+      {/* =====================================================
           FOOTER
-      ========================= */}
+      ===================================================== */}
 
       <footer className="footer">
         © 2026 Library OPAC. All rights reserved.
